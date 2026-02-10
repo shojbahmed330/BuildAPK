@@ -7,6 +7,9 @@ CREATE TABLE IF NOT EXISTS public.users (
   tokens INTEGER DEFAULT 10,
   avatar_url TEXT,
   bio TEXT,
+  github_token TEXT,
+  github_owner TEXT,
+  github_repo TEXT,
   is_verified BOOLEAN DEFAULT false,
   is_banned BOOLEAN DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
@@ -48,7 +51,7 @@ CREATE TABLE IF NOT EXISTS public.activity_logs (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- ৫. অটোমেটিক লগিং ট্রিগার (SECURITY DEFINER ফিক্স সহ)
+-- ৫. অটোমেটিক লগিং ট্রিগার
 CREATE OR REPLACE FUNCTION public.log_user_updates()
 RETURNS trigger 
 LANGUAGE plpgsql 
@@ -57,7 +60,6 @@ AS $$
 DECLARE
     admin_email_from_jwt TEXT;
 BEGIN
-    -- JWT থেকে এডমিন ইমেইল নেওয়ার চেষ্টা
     BEGIN
         admin_email_from_jwt := auth.jwt() ->> 'email';
     EXCEPTION WHEN OTHERS THEN
@@ -68,13 +70,11 @@ BEGIN
         admin_email_from_jwt := 'SYSTEM_TRIGGER';
     END IF;
 
-    -- টোকেন আপডেট চেক
     IF OLD.tokens <> NEW.tokens THEN
         INSERT INTO public.activity_logs (admin_email, action, details)
         VALUES (admin_email_from_jwt, 'TOKEN_UPDATE', 'User: ' || NEW.email || ' | ' || OLD.tokens || ' -> ' || NEW.tokens);
     END IF;
 
-    -- ব্যান স্ট্যাটাস চেক
     IF OLD.is_banned <> NEW.is_banned THEN
         INSERT INTO public.activity_logs (admin_email, action, details)
         VALUES (admin_email_from_jwt, CASE WHEN NEW.is_banned THEN 'USER_SUSPEND' ELSE 'USER_UNSUSPEND' END, 'User: ' || NEW.email);

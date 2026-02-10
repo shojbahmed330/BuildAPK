@@ -51,7 +51,7 @@ export interface Transaction {
   screenshot_url?: string;
   message?: string;
   created_at: string;
-  user_email?: string; // Virtual field for admin
+  user_email?: string;
 }
 
 export interface ActivityLog {
@@ -73,5 +73,8 @@ export interface User {
   isAdmin?: boolean;
   is_banned?: boolean;
   bio?: string;
+  github_token?: string;
+  github_owner?: string;
+  github_repo?: string;
   is_verified?: boolean;
 }
